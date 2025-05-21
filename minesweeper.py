@@ -45,8 +45,8 @@ def generate_board(level):
 
 # a little wrapped game logic
 
-def handle_click(i, j, board, puzzle, flag_click=False):
-    # player is trying to flag/unflag a tile
+def handle_click(i, j, board, puzzle, flag_click):
+    # player is trying to flag/unflag a tile. currently false until JS logic exists
     if flag_click:
         return toggle_flag(i, j, puzzle)
     # player marked it, don't let them click it
@@ -68,10 +68,10 @@ def handle_click(i, j, board, puzzle, flag_click=False):
 def toggle_flag(i, j, puzzle):
     if puzzle[i][j] == -2:
         puzzle[i][j] = -1
-        return "flagged"
+        return "flag placed"
     elif puzzle[i][j] == -1:
         puzzle[i][j] == -2
-        return "unflagged"
+        return "flag removed"
     else:
         return "already revealed"
     
@@ -110,6 +110,43 @@ def flood_fill(i, j, board, puzzle):
                         queue.append((cx, cy))
     return to_reveal
 
+def simulate_play(board, level):
+    # -2 indicates covered tile. player board begins blank
+    # puzzle = [[-2 for _ in range(len(board))] for _ in range(len(board[-2]))]
+    # coords = [(i, j) for i in range(len(board)) for j in range(len(board[0]))]
+
+    w, h, bombs = difficulty[level]
+
+    puzzle = [[0 for _ in range(w)] for _ in range(h)]
+    puzzle_coords = [(i, j) for i in range(w) for j in range(h)]
+
+    random.shuffle(puzzle_coords)
+
+    # only attempt 1000 times
+    for _ in range(1000):
+    
+        x, y = puzzle_coords.pop()
+        action = random.choices([False, True], weights = [0.75, 0.25])[0]
+
+        result = handle_click(x, y, board, puzzle, action)
+
+        if result == "lose":
+            print("BOOM!")
+            break
+        elif result == "already revealed":
+            puzzle_coords.append(x, y)
+            continue
+        elif result == "flagged" or result == "flag placed" or result == "flag removed":
+            print_board(puzzle)
+            puzzle_coords.append(x, y)
+            continue
+        else:
+            print_board(puzzle)
+            continue
+    
+        if not puzzle_coords:
+            break
+
 
 # print board for testing
 
@@ -121,7 +158,7 @@ def print_board(board):
     print()
 
 if __name__ == "__main__":
-    for _ in range(100):
-        level = random.choice(list(difficulty.keys()))
-        board = generate_board(level)
-        print_board(board)
+    level = random.choice(list(difficulty.keys()))
+    board = generate_board(level)
+    print_board(board)
+    simulate_play(board, level)
